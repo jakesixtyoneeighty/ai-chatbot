@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { ClerkProvider } from "@clerk/nextjs";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Outfit, JetBrains_Mono } from "next/font/google";
 import { Toaster } from "sonner";
 import { ThemeProvider } from "@/components/theme-provider";
 
@@ -16,20 +16,20 @@ export const viewport = {
   maximumScale: 1, // Disable auto-zoom on mobile Safari
 };
 
-const geist = Geist({
+const outfit = Outfit({
   subsets: ["latin"],
   display: "swap",
-  variable: "--font-geist",
+  variable: "--font-outfit",
 });
 
-const geistMono = Geist_Mono({
+const jetbrainsMono = JetBrains_Mono({
   subsets: ["latin"],
   display: "swap",
-  variable: "--font-geist-mono",
+  variable: "--font-jetbrains-mono",
 });
 
-const LIGHT_THEME_COLOR = "hsl(0 0% 100%)";
-const DARK_THEME_COLOR = "hsl(240deg 10% 3.92%)";
+const LIGHT_THEME_COLOR = "hsl(35 30% 98%)";
+const DARK_THEME_COLOR = "hsl(25 25% 8%)";
 const THEME_COLOR_SCRIPT = `\
 (function() {
   var html = document.documentElement;
@@ -56,7 +56,7 @@ export default function RootLayout({
   return (
     <ClerkProvider>
       <html
-        className={`${geist.variable} ${geistMono.variable}`}
+        className={`${outfit.variable} ${jetbrainsMono.variable}`}
         // `next-themes` injects an extra classname to the body element to avoid
         // visual flicker before hydration. Hence the `suppressHydrationWarning`
         // prop is necessary to avoid the React hydration mismatch warning.

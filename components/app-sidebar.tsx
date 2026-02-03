@@ -77,7 +77,7 @@ export function AppSidebar({ user }: { user: AuthUser | undefined }) {
                   setOpenMobile(false);
                 }}
               >
-                <span className="cursor-pointer rounded-md px-2 font-semibold text-lg hover:bg-muted">
+                <span className="cursor-pointer rounded-md bg-gradient-to-r from-primary via-accent to-primary bg-clip-text px-2 font-bold text-lg text-transparent transition-all hover:opacity-80">
                   Nudist AI
                 </span>
               </Link>
