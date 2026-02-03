@@ -27,6 +27,7 @@ import {
   stream,
   suggestion,
   type User,
+  type UserProfile,
   user,
   vote,
 } from "./schema";
@@ -623,6 +624,63 @@ export async function getStreamIdsByChatId({ chatId }: { chatId: string }) {
     throw new ChatSDKError(
       "bad_request:database",
       "Failed to get stream ids by chat id"
+    );
+  }
+}
+
+export async function getUserProfile({
+  userId,
+}: {
+  userId: string;
+}): Promise<UserProfile | null> {
+  try {
+    const [selectedUser] = await db
+      .select({
+        name: user.name,
+        sex: user.sex,
+        age: user.age,
+        location: user.location,
+        nudismExperience: user.nudismExperience,
+        bio: user.bio,
+      })
+      .from(user)
+      .where(eq(user.id, userId));
+
+    return selectedUser ?? null;
+  } catch (_error) {
+    throw new ChatSDKError(
+      "bad_request:database",
+      "Failed to get user profile"
+    );
+  }
+}
+
+export async function updateUserProfile({
+  userId,
+  profile,
+}: {
+  userId: string;
+  profile: UserProfile;
+}) {
+  try {
+    const [updatedUser] = await db
+      .update(user)
+      .set({
+        name: profile.name,
+        sex: profile.sex,
+        age: profile.age,
+        location: profile.location,
+        nudismExperience: profile.nudismExperience,
+        bio: profile.bio,
+      })
+      .where(eq(user.id, userId))
+      .returning();
+
+    return updatedUser;
+  } catch (_error) {
+    throw new ChatSDKError(
+      "bad_request:database",
+      "Failed to update user profile"
     );
   }
 }

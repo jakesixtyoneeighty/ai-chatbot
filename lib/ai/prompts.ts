@@ -1,5 +1,55 @@
 import type { Geo } from "@vercel/functions";
 import type { ArtifactKind } from "@/components/artifact";
+import type { UserProfile } from "@/lib/db/schema";
+
+// Experience level display text mapping
+const experienceLabels: Record<string, string> = {
+  "none": "brand new to naturism and curious",
+  "new": "just dipped their toes in the naturist waters",
+  "intermediate": "finding their comfort zone in the lifestyle",
+  "experienced": "a seasoned sun-worshipper",
+  "expert": "a lifelong naturist",
+};
+
+export const getUserProfilePrompt = (profile?: UserProfile | null): string => {
+  if (!profile) return "";
+
+  const parts: string[] = [];
+
+  if (profile.name) {
+    parts.push(`Their name is ${profile.name}`);
+  }
+
+  if (profile.sex) {
+    parts.push(`they identify as ${profile.sex}`);
+  }
+
+  if (profile.age) {
+    parts.push(`they are ${profile.age} years old`);
+  }
+
+  if (profile.location) {
+    parts.push(`they're located in ${profile.location}`);
+  }
+
+  if (profile.nudismExperience) {
+    const experienceText = experienceLabels[profile.nudismExperience] || profile.nudismExperience;
+    parts.push(`they are ${experienceText}`);
+  }
+
+  if (!parts.length && !profile.bio) return "";
+
+  let prompt = "";
+  if (parts.length > 0) {
+    prompt = `\n\nAbout the person you're chatting with: ${parts.join(", ")}.`;
+  }
+
+  if (profile.bio) {
+    prompt += `\n\nThey shared this about themselves: "${profile.bio}"`;
+  }
+
+  return prompt;
+};
 
 export const artifactsPrompt = `
 Artifacts is a special user interface mode that helps users with writing, editing, and other content creation tasks. When artifact is open, it is on the right side of the screen, while the conversation is on the left side. When creating or updating documents, changes are reflected in real-time on the artifacts and visible to the user.
@@ -103,23 +153,26 @@ export const systemPrompt = ({
   selectedChatModel,
   requestHints,
   knowledgeBase,
+  userProfile,
 }: {
   selectedChatModel: string;
   requestHints: RequestHints;
   knowledgeBase?: string;
+  userProfile?: UserProfile | null;
 }) => {
   const requestPrompt = getRequestPromptFromHints(requestHints);
   const kbPrompt = knowledgeBase ? `\n\nReference Knowledge Base:\n${knowledgeBase}` : "";
+  const userProfilePrompt = getUserProfilePrompt(userProfile);
 
   // reasoning models don't need artifacts prompt (they can't use tools)
   if (
     selectedChatModel.includes("reasoning") ||
     selectedChatModel.includes("thinking")
   ) {
-    return `${regularPrompt}\n\n${requestPrompt}${kbPrompt}`;
+    return `${regularPrompt}${userProfilePrompt}\n\n${requestPrompt}${kbPrompt}`;
   }
 
-  return `${regularPrompt}\n\n${requestPrompt}\n\n${artifactsPrompt}${kbPrompt}`;
+  return `${regularPrompt}${userProfilePrompt}\n\n${requestPrompt}\n\n${artifactsPrompt}${kbPrompt}`;
 };
 
 export const codePrompt = `

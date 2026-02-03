@@ -19,6 +19,13 @@ export const user = pgTable(
     email: varchar("email", { length: 64 }).notNull(),
     password: varchar("password", { length: 64 }),
     clerkId: varchar("clerkId", { length: 64 }),
+    // User profile fields (all optional)
+    name: varchar("name", { length: 100 }),
+    sex: varchar("sex", { length: 32 }),
+    age: varchar("age", { length: 10 }),
+    location: varchar("location", { length: 200 }),
+    nudismExperience: varchar("nudismExperience", { length: 64 }),
+    bio: text("bio"),
   },
   (table) => ({
     clerkIdUnique: uniqueIndex("User_clerkId_unique").on(table.clerkId),
@@ -26,6 +33,15 @@ export const user = pgTable(
 );
 
 export type User = InferSelectModel<typeof user>;
+
+export type UserProfile = {
+  name?: string | null;
+  sex?: string | null;
+  age?: string | null;
+  location?: string | null;
+  nudismExperience?: string | null;
+  bio?: string | null;
+};
 
 export const chat = pgTable("Chat", {
   id: uuid("id").primaryKey().notNull().defaultRandom(),

@@ -27,6 +27,7 @@ import {
   getChatById,
   getMessageCountByUserId,
   getMessagesByChatId,
+  getUserProfile,
   saveChat,
   saveMessages,
   updateChatTitleById,
@@ -147,12 +148,15 @@ export async function POST(request: Request) {
 
     const modelMessages = await convertToModelMessages(uiMessages);
 
+    // Fetch user profile for personalization
+    const userProfile = await getUserProfile({ userId: user.id });
+
     const stream = createUIMessageStream({
       originalMessages: isToolApprovalFlow ? uiMessages : undefined,
       execute: async ({ writer: dataStream }) => {
         const result = streamText({
           model: getLanguageModel(selectedChatModel),
-          system: systemPrompt({ selectedChatModel, requestHints, knowledgeBase: nudistKbContent }),
+          system: systemPrompt({ selectedChatModel, requestHints, knowledgeBase: nudistKbContent, userProfile }),
           messages: modelMessages,
           stopWhen: stepCountIs(5),
           experimental_activeTools: isReasoningModel
