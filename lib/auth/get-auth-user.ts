@@ -9,7 +9,14 @@ import {
 } from "@/lib/db/queries";
 import type { AuthUser } from "@/lib/auth/types";
 
-function getClerkEmail(clerkUser: Awaited<ReturnType<typeof clerkClient.users.getUser>>) {
+type ClerkUser = {
+  id: string;
+  username?: string | null;
+  primaryEmailAddressId?: string | null;
+  emailAddresses: { id: string; emailAddress: string }[];
+};
+
+function getClerkEmail(clerkUser: ClerkUser) {
   const primaryEmail = clerkUser.emailAddresses.find(
     (email) => email.id === clerkUser.primaryEmailAddressId
   )?.emailAddress;
@@ -39,7 +46,8 @@ export async function getAuthUser(): Promise<AuthUser | null> {
     };
   }
 
-  const clerkUser = await clerkClient.users.getUser(userId);
+  const client = await clerkClient();
+  const clerkUser = await client.users.getUser(userId);
   const email = getClerkEmail(clerkUser);
 
   const usersByEmail = await getUser(email);
