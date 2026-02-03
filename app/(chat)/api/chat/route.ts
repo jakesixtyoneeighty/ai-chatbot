@@ -7,6 +7,8 @@ import {
   stepCountIs,
   streamText,
 } from "ai";
+import fs from 'fs';
+import path from 'path';
 import { after } from "next/server";
 import { createResumableStreamContext } from "resumable-stream";
 import { auth, type UserType } from "@/app/(auth)/auth";
@@ -16,6 +18,7 @@ import { getLanguageModel } from "@/lib/ai/providers";
 import { createDocument } from "@/lib/ai/tools/create-document";
 import { getWeather } from "@/lib/ai/tools/get-weather";
 import { requestSuggestions } from "@/lib/ai/tools/request-suggestions";
+import { searchExa, readUrlExa } from "@/lib/ai/tools/search-exa";
 import { updateDocument } from "@/lib/ai/tools/update-document";
 import { isProductionEnvironment } from "@/lib/constants";
 import {
@@ -35,6 +38,16 @@ import type { ChatMessage } from "@/lib/types";
 import { convertToUIMessages, generateUUID } from "@/lib/utils";
 import { generateTitleFromUserMessage } from "../../actions";
 import { type PostRequestBody, postRequestBodySchema } from "./schema";
+
+let nudistKbContent = '';
+try {
+  const filePath = path.join(process.cwd(), 'nudistkb.md');
+  if (fs.existsSync(filePath)) {
+    nudistKbContent = fs.readFileSync(filePath, 'utf-8');
+  }
+} catch (e) {
+  console.error("Failed to read knowledge base", e);
+}
 
 export const maxDuration = 60;
 
@@ -141,7 +154,7 @@ export async function POST(request: Request) {
       execute: async ({ writer: dataStream }) => {
         const result = streamText({
           model: getLanguageModel(selectedChatModel),
-          system: systemPrompt({ selectedChatModel, requestHints }),
+          system: systemPrompt({ selectedChatModel, requestHints, knowledgeBase: nudistKbContent }),
           messages: modelMessages,
           stopWhen: stepCountIs(5),
           experimental_activeTools: isReasoningModel
@@ -151,6 +164,8 @@ export async function POST(request: Request) {
                 "createDocument",
                 "updateDocument",
                 "requestSuggestions",
+                "searchExa",
+                "readUrlExa",
               ],
           providerOptions: isReasoningModel
             ? {
@@ -164,6 +179,8 @@ export async function POST(request: Request) {
             createDocument: createDocument({ session, dataStream }),
             updateDocument: updateDocument({ session, dataStream }),
             requestSuggestions: requestSuggestions({ session, dataStream }),
+            searchExa,
+            readUrlExa,
           },
           experimental_telemetry: {
             isEnabled: isProductionEnvironment,
