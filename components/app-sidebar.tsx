@@ -2,11 +2,16 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import type { User } from "next-auth";
 import { useState } from "react";
 import { toast } from "sonner";
 import { useSWRConfig } from "swr";
 import { unstable_serialize } from "swr/infinite";
+import {
+  SignedIn,
+  SignedOut,
+  SignInButton,
+  SignUpButton,
+} from "@clerk/nextjs";
 import { PlusIcon, TrashIcon } from "@/components/icons";
 import {
   getChatHistoryPaginationKey,
@@ -22,6 +27,7 @@ import {
   SidebarMenu,
   useSidebar,
 } from "@/components/ui/sidebar";
+import type { AuthUser } from "@/lib/auth/types";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -34,7 +40,7 @@ import {
 } from "./ui/alert-dialog";
 import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 
-export function AppSidebar({ user }: { user: User | undefined }) {
+export function AppSidebar({ user }: { user: AuthUser | undefined }) {
   const router = useRouter();
   const { setOpenMobile } = useSidebar();
   const { mutate } = useSWRConfig();
@@ -119,7 +125,25 @@ export function AppSidebar({ user }: { user: User | undefined }) {
         <SidebarContent>
           <SidebarHistory user={user} />
         </SidebarContent>
-        <SidebarFooter>{user && <SidebarUserNav user={user} />}</SidebarFooter>
+        <SidebarFooter>
+          <SignedOut>
+            <div className="flex flex-col gap-2 p-2">
+              <SignInButton mode="redirect">
+                <Button className="w-full" variant="default">
+                  Sign in
+                </Button>
+              </SignInButton>
+              <SignUpButton mode="redirect">
+                <Button className="w-full" variant="secondary">
+                  Sign up
+                </Button>
+              </SignUpButton>
+            </div>
+          </SignedOut>
+          <SignedIn>
+            <SidebarUserNav />
+          </SignedIn>
+        </SidebarFooter>
       </Sidebar>
 
       <AlertDialog

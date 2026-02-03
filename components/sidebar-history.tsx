@@ -3,7 +3,6 @@
 import { isToday, isYesterday, subMonths, subWeeks } from "date-fns";
 import { motion } from "framer-motion";
 import { usePathname, useRouter } from "next/navigation";
-import type { User } from "next-auth";
 import { useState } from "react";
 import { toast } from "sonner";
 import useSWRInfinite from "swr/infinite";
@@ -23,6 +22,7 @@ import {
   SidebarMenu,
   useSidebar,
 } from "@/components/ui/sidebar";
+import type { AuthUser } from "@/lib/auth/types";
 import type { Chat } from "@/lib/db/schema";
 import { fetcher } from "@/lib/utils";
 import { LoaderIcon } from "./icons";
@@ -78,7 +78,7 @@ const groupChatsByDate = (chats: Chat[]): GroupedChats => {
 
 export function getChatHistoryPaginationKey(
   pageIndex: number,
-  previousPageData: ChatHistory
+  previousPageData: ChatHistory | null
 ) {
   if (previousPageData && previousPageData.hasMore === false) {
     return null;
@@ -88,7 +88,7 @@ export function getChatHistoryPaginationKey(
     return `/api/history?limit=${PAGE_SIZE}`;
   }
 
-  const firstChatFromPage = previousPageData.chats.at(-1);
+  const firstChatFromPage = previousPageData?.chats.at(-1);
 
   if (!firstChatFromPage) {
     return null;
@@ -97,10 +97,21 @@ export function getChatHistoryPaginationKey(
   return `/api/history?ending_before=${firstChatFromPage.id}&limit=${PAGE_SIZE}`;
 }
 
-export function SidebarHistory({ user }: { user: User | undefined }) {
+export function SidebarHistory({ user }: { user: AuthUser | undefined }) {
   const { setOpenMobile } = useSidebar();
   const pathname = usePathname();
   const id = pathname?.startsWith("/chat/") ? pathname.split("/")[2] : null;
+
+  const getKey = (
+    pageIndex: number,
+    previousPageData: ChatHistory | null
+  ) => {
+    if (!user) {
+      return null;
+    }
+
+    return getChatHistoryPaginationKey(pageIndex, previousPageData);
+  };
 
   const {
     data: paginatedChatHistories,
@@ -108,7 +119,7 @@ export function SidebarHistory({ user }: { user: User | undefined }) {
     isValidating,
     isLoading,
     mutate,
-  } = useSWRInfinite<ChatHistory>(getChatHistoryPaginationKey, fetcher, {
+  } = useSWRInfinite<ChatHistory>(getKey, fetcher, {
     fallbackData: [],
   });
 

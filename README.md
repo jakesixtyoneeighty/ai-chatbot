@@ -28,8 +28,8 @@
 - Data Persistence
   - [Neon Serverless Postgres](https://vercel.com/marketplace/neon) for saving chat history and user data
   - [Vercel Blob](https://vercel.com/storage/blob) for efficient file storage
-- [Auth.js](https://authjs.dev)
-  - Simple and secure authentication
+- [Clerk](https://clerk.com)
+  - Authentication and user management
 
 ## Model Providers
 

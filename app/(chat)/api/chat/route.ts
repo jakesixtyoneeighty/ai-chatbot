@@ -11,8 +11,7 @@ import fs from 'fs';
 import path from 'path';
 import { after } from "next/server";
 import { createResumableStreamContext } from "resumable-stream";
-import { auth, type UserType } from "@/app/(auth)/auth";
-import { entitlementsByUserType } from "@/lib/ai/entitlements";
+import { defaultEntitlements } from "@/lib/ai/entitlements";
 import { type RequestHints, systemPrompt } from "@/lib/ai/prompts";
 import { getLanguageModel } from "@/lib/ai/providers";
 import { createDocument } from "@/lib/ai/tools/create-document";
@@ -20,6 +19,7 @@ import { getWeather } from "@/lib/ai/tools/get-weather";
 import { requestSuggestions } from "@/lib/ai/tools/request-suggestions";
 import { searchExa, readUrlExa } from "@/lib/ai/tools/search-exa";
 import { updateDocument } from "@/lib/ai/tools/update-document";
+import { getAuthUser } from "@/lib/auth/get-auth-user";
 import { isProductionEnvironment } from "@/lib/constants";
 import {
   createStreamId,
@@ -75,20 +75,18 @@ export async function POST(request: Request) {
     const { id, message, messages, selectedChatModel, selectedVisibilityType } =
       requestBody;
 
-    const session = await auth();
+    const user = await getAuthUser();
 
-    if (!session?.user) {
+    if (!user) {
       return new ChatSDKError("unauthorized:chat").toResponse();
     }
 
-    const userType: UserType = session.user.type;
-
     const messageCount = await getMessageCountByUserId({
-      id: session.user.id,
+      id: user.id,
       differenceInHours: 24,
     });
 
-    if (messageCount > entitlementsByUserType[userType].maxMessagesPerDay) {
+    if (messageCount > defaultEntitlements.maxMessagesPerDay) {
       return new ChatSDKError("rate_limit:chat").toResponse();
     }
 
@@ -99,7 +97,7 @@ export async function POST(request: Request) {
     let titlePromise: Promise<string> | null = null;
 
     if (chat) {
-      if (chat.userId !== session.user.id) {
+      if (chat.userId !== user.id) {
         return new ChatSDKError("forbidden:chat").toResponse();
       }
       if (!isToolApprovalFlow) {
@@ -108,7 +106,7 @@ export async function POST(request: Request) {
     } else if (message?.role === "user") {
       await saveChat({
         id,
-        userId: session.user.id,
+        userId: user.id,
         title: "New chat",
         visibility: selectedVisibilityType,
       });
@@ -176,9 +174,9 @@ export async function POST(request: Request) {
             : undefined,
           tools: {
             getWeather,
-            createDocument: createDocument({ session, dataStream }),
-            updateDocument: updateDocument({ session, dataStream }),
-            requestSuggestions: requestSuggestions({ session, dataStream }),
+            createDocument: createDocument({ user, dataStream }),
+            updateDocument: updateDocument({ user, dataStream }),
+            requestSuggestions: requestSuggestions({ user, dataStream }),
             searchExa,
             readUrlExa,
           },
@@ -287,15 +285,15 @@ export async function DELETE(request: Request) {
     return new ChatSDKError("bad_request:api").toResponse();
   }
 
-  const session = await auth();
+  const user = await getAuthUser();
 
-  if (!session?.user) {
+  if (!user) {
     return new ChatSDKError("unauthorized:chat").toResponse();
   }
 
   const chat = await getChatById({ id });
 
-  if (chat?.userId !== session.user.id) {
+  if (chat?.userId !== user.id) {
     return new ChatSDKError("forbidden:chat").toResponse();
   }
 
