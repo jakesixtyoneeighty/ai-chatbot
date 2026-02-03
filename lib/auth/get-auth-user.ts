@@ -30,7 +30,7 @@ function getClerkEmail(clerkUser: ClerkUser) {
 }
 
 export async function getAuthUser(): Promise<AuthUser | null> {
-  const { userId } = auth();
+  const { userId } = await auth();
 
   if (!userId) {
     return null;
