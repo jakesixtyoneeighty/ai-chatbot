@@ -39,10 +39,20 @@ import {
 const client = postgres(process.env.POSTGRES_URL!);
 const db = drizzle(client);
 
+function logDbError(operation: string, error: unknown) {
+  const err = error as { message?: string; code?: string };
+
+  console.error(`[db] ${operation} failed`, {
+    message: err?.message ?? String(error),
+    code: err?.code,
+  });
+}
+
 export async function getUser(email: string): Promise<User[]> {
   try {
     return await db.select().from(user).where(eq(user.email, email));
   } catch (_error) {
+    logDbError("getUser", _error);
     throw new ChatSDKError(
       "bad_request:database",
       "Failed to get user by email"
@@ -59,6 +69,7 @@ export async function getUserByClerkId(clerkId: string): Promise<User | null> {
 
     return selectedUser ?? null;
   } catch (_error) {
+    logDbError("getUserByClerkId", _error);
     throw new ChatSDKError(
       "bad_request:database",
       "Failed to get user by clerk id"
@@ -79,6 +90,7 @@ export async function createUserFromClerk({
       .values({ email, clerkId })
       .returning();
   } catch (_error) {
+    logDbError("createUserFromClerk", _error);
     throw new ChatSDKError("bad_request:database", "Failed to create user");
   }
 }
@@ -99,6 +111,7 @@ export async function updateUserClerkId({
 
     return updatedUser;
   } catch (_error) {
+    logDbError("updateUserClerkId", _error);
     throw new ChatSDKError(
       "bad_request:database",
       "Failed to update user clerk id"
