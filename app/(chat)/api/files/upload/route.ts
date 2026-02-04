@@ -8,13 +8,16 @@ import { getAuthUser } from "@/lib/auth/get-auth-user";
 const FileSchema = z.object({
   file: z
     .instanceof(Blob)
-    .refine((file) => file.size <= 5 * 1024 * 1024, {
-      message: "File size should be less than 5MB",
+    .refine((file) => file.size <= 50 * 1024 * 1024, {
+      message: "File size should be less than 50MB",
     })
     // Update the file type based on the kind of files you want to accept
-    .refine((file) => ["image/jpeg", "image/png"].includes(file.type), {
-      message: "File type should be JPEG or PNG",
-    }),
+    .refine(
+      (file) => ["image/jpeg", "image/png", "video/mp4"].includes(file.type),
+      {
+        message: "File type should be JPEG, PNG, or MP4",
+      }
+    ),
 });
 
 export async function POST(request: Request) {
