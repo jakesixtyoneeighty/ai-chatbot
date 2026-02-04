@@ -27,7 +27,11 @@ import {
   getChatById,
   getMessageCountByUserId,
   getMessagesByChatId,
+  getIpBan,
+  getUserBanStatus,
   getUserProfile,
+  banIp,
+  banUser,
   saveChat,
   saveMessages,
   updateChatTitleById,
@@ -35,6 +39,10 @@ import {
 } from "@/lib/db/queries";
 import type { DBMessage } from "@/lib/db/schema";
 import { ChatSDKError } from "@/lib/errors";
+import {
+  evaluateModeration,
+  getModerationEjectionResponse,
+} from "@/lib/moderation/guard";
 import type { ChatMessage } from "@/lib/types";
 import { convertToUIMessages, generateUUID } from "@/lib/utils";
 import { generateTitleFromUserMessage } from "../../actions";
@@ -62,6 +70,19 @@ function getStreamContext() {
 
 export { getStreamContext };
 
+function getClientIp(request: Request) {
+  const forwarded =
+    request.headers.get("x-forwarded-for") ??
+    request.headers.get("x-real-ip") ??
+    request.headers.get("x-vercel-forwarded-for");
+
+  if (!forwarded) {
+    return null;
+  }
+
+  return forwarded.split(",")[0]?.trim() || null;
+}
+
 export async function POST(request: Request) {
   let requestBody: PostRequestBody;
 
@@ -82,6 +103,19 @@ export async function POST(request: Request) {
       return new ChatSDKError("unauthorized:chat").toResponse();
     }
 
+    const clientIp = getClientIp(request);
+    const [userBan, ipBan] = await Promise.all([
+      getUserBanStatus({ userId: user.id }),
+      clientIp ? getIpBan({ ip: clientIp }) : Promise.resolve(null),
+    ]);
+
+    if (userBan?.bannedAt || ipBan) {
+      return new ChatSDKError(
+        "forbidden:moderation",
+        getModerationEjectionResponse(`${user.id}:${clientIp ?? ""}`)
+      ).toResponse();
+    }
+
     const messageCount = await getMessageCountByUserId({
       id: user.id,
       differenceInHours: 24,
@@ -92,6 +126,25 @@ export async function POST(request: Request) {
     }
 
     const isToolApprovalFlow = Boolean(messages);
+
+    if (!isToolApprovalFlow && message?.role === "user") {
+      const moderationDecision = evaluateModeration(message);
+      if (moderationDecision.action === "block") {
+        const banTasks: Promise<unknown>[] = [
+          banUser({ userId: user.id, reason: moderationDecision.reason }),
+        ];
+        if (clientIp) {
+          banTasks.push(
+            banIp({ ip: clientIp, reason: moderationDecision.reason })
+          );
+        }
+        await Promise.all(banTasks);
+        return new ChatSDKError(
+          "forbidden:moderation",
+          moderationDecision.response
+        ).toResponse();
+      }
+    }
 
     const chat = await getChatById({ id });
     let messagesFromDb: DBMessage[] = [];

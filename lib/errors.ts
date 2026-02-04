@@ -10,6 +10,7 @@ export type Surface =
   | "chat"
   | "auth"
   | "api"
+  | "moderation"
   | "stream"
   | "database"
   | "history"
@@ -28,6 +29,7 @@ export const visibilityBySurface: Record<Surface, ErrorVisibility> = {
   auth: "response",
   stream: "response",
   api: "response",
+  moderation: "response",
   history: "response",
   vote: "response",
   document: "response",
@@ -102,6 +104,8 @@ export function getMessageByErrorCode(errorCode: ErrorCode): string {
       return "You need to sign in to view this chat. Please sign in and try again.";
     case "offline:chat":
       return "We're having trouble sending your message. Please check your internet connection and try again.";
+    case "forbidden:moderation":
+      return "You're not allowed to continue here.";
 
     case "not_found:document":
       return "The requested document was not found. Please check the document ID and try again.";

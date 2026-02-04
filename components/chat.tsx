@@ -139,6 +139,22 @@ export function Chat({
     },
     onError: (error) => {
       if (error instanceof ChatSDKError) {
+        if (error.surface === "moderation") {
+          const moderationMessage =
+            typeof error.cause === "string" && error.cause.length > 0
+              ? error.cause
+              : error.message;
+          setMessages((current) => [
+            ...current,
+            {
+              id: generateUUID(),
+              role: "assistant",
+              parts: [{ type: "text", text: moderationMessage }],
+              metadata: { createdAt: new Date().toISOString() },
+            },
+          ]);
+          return;
+        }
         if (
           error.message?.includes("AI Gateway requires a valid credit card")
         ) {

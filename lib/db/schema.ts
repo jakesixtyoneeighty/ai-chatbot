@@ -19,6 +19,8 @@ export const user = pgTable(
     email: varchar("email", { length: 64 }).notNull(),
     password: varchar("password", { length: 64 }),
     clerkId: varchar("clerkId", { length: 64 }),
+    bannedAt: timestamp("bannedAt"),
+    banReason: text("banReason"),
     // User profile fields (all optional)
     name: varchar("name", { length: 100 }),
     sex: varchar("sex", { length: 32 }),
@@ -42,6 +44,14 @@ export type UserProfile = {
   nudismExperience?: string | null;
   bio?: string | null;
 };
+
+export const bannedIp = pgTable("BannedIp", {
+  ip: varchar("ip", { length: 64 }).primaryKey().notNull(),
+  reason: text("reason"),
+  createdAt: timestamp("createdAt").notNull(),
+});
+
+export type BannedIp = InferSelectModel<typeof bannedIp>;
 
 export const chat = pgTable("Chat", {
   id: uuid("id").primaryKey().notNull().defaultRandom(),

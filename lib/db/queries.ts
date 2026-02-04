@@ -19,6 +19,7 @@ import type { VisibilityType } from "@/components/visibility-selector";
 import { ChatSDKError } from "../errors";
 import {
   type Chat,
+  bannedIp,
   chat,
   type DBMessage,
   document,
@@ -116,6 +117,77 @@ export async function updateUserClerkId({
       "bad_request:database",
       "Failed to update user clerk id"
     );
+  }
+}
+
+export async function getUserBanStatus({ userId }: { userId: string }) {
+  try {
+    const [selectedUser] = await db
+      .select({
+        bannedAt: user.bannedAt,
+        banReason: user.banReason,
+      })
+      .from(user)
+      .where(eq(user.id, userId));
+
+    return selectedUser ?? null;
+  } catch (_error) {
+    logDbError("getUserBanStatus", _error);
+    throw new ChatSDKError(
+      "bad_request:database",
+      "Failed to get user ban status"
+    );
+  }
+}
+
+export async function banUser({
+  userId,
+  reason,
+}: {
+  userId: string;
+  reason: string;
+}) {
+  try {
+    const [updatedUser] = await db
+      .update(user)
+      .set({ bannedAt: new Date(), banReason: reason })
+      .where(eq(user.id, userId))
+      .returning();
+
+    return updatedUser ?? null;
+  } catch (_error) {
+    logDbError("banUser", _error);
+    throw new ChatSDKError("bad_request:database", "Failed to ban user");
+  }
+}
+
+export async function getIpBan({ ip }: { ip: string }) {
+  try {
+    const [selectedBan] = await db
+      .select({
+        ip: bannedIp.ip,
+        reason: bannedIp.reason,
+        createdAt: bannedIp.createdAt,
+      })
+      .from(bannedIp)
+      .where(eq(bannedIp.ip, ip));
+
+    return selectedBan ?? null;
+  } catch (_error) {
+    logDbError("getIpBan", _error);
+    throw new ChatSDKError("bad_request:database", "Failed to get IP ban");
+  }
+}
+
+export async function banIp({ ip, reason }: { ip: string; reason: string }) {
+  try {
+    await db
+      .insert(bannedIp)
+      .values({ ip, reason, createdAt: new Date() })
+      .onConflictDoNothing();
+  } catch (_error) {
+    logDbError("banIp", _error);
+    throw new ChatSDKError("bad_request:database", "Failed to ban IP");
   }
 }
 

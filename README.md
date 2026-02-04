@@ -33,7 +33,7 @@
 
 ## Model Providers
 
-This application is configured to use **Nudist AI** (`bytedance/seed-1.8`) as the primary model.
+This application is configured to use **Nudist AI** (`xai/grok-4.1-fast-reasoning`) as the primary model.
 
 ## Running locally
 
