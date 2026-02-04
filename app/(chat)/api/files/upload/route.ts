@@ -8,7 +8,7 @@ import { getAuthUser } from "@/lib/auth/get-auth-user";
 const FileSchema = z.object({
   file: z
     .instanceof(Blob)
-    .refine((file) => file.size <= 50 * 1024 * 1024, {
+    .refine((file) => file.size <= 75 * 1024 * 1024, {
       message: "File size should be less than 50MB",
     })
     // Update the file type based on the kind of files you want to accept
