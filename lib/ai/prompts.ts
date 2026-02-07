@@ -198,7 +198,7 @@ export const systemPrompt = ({
   const kbPrompt = knowledgeBase ? `\n\nReference Knowledge Base:\n${knowledgeBase}` : "";
   const userProfilePrompt = getUserProfilePrompt(userProfile);
 
-  return `${regularPrompt}${userProfilePrompt}\n\n${requestPrompt}\n\n${artifactsPrompt}${kbPrompt}`;
+  return `${regularPrompt}${userProfilePrompt}\n\n${requestPrompt}${kbPrompt}`;
 };
 
 export const codePrompt = `

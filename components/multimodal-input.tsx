@@ -4,6 +4,7 @@ import type { UseChatHelpers } from "@ai-sdk/react";
 import type { UIMessage } from "ai";
 import equal from "fast-deep-equal";
 import { CheckIcon } from "lucide-react";
+import Image from "next/image";
 import {
   type ChangeEvent,
   type Dispatch,
@@ -455,6 +456,22 @@ function PureAttachmentsButton({
 
 const AttachmentsButton = memo(PureAttachmentsButton);
 
+function ModelBadgeLogo({ provider }: { provider: string }) {
+  if (provider === "xai") {
+    return (
+      <Image
+        alt="Jad logo"
+        className="size-3 rounded-sm object-contain"
+        height={12}
+        src="/images/jad.svg"
+        width={12}
+      />
+    );
+  }
+
+  return <ModelSelectorLogo provider={provider} />;
+}
+
 function PureModelSelectorCompact({
   selectedModelId,
   onModelChange,
@@ -484,7 +501,7 @@ function PureModelSelectorCompact({
     <ModelSelector onOpenChange={setOpen} open={open}>
       <ModelSelectorTrigger asChild>
         <Button className="h-8 w-[200px] justify-between px-2" variant="ghost">
-          {provider && <ModelSelectorLogo provider={provider} />}
+          {provider && <ModelBadgeLogo provider={provider} />}
           <ModelSelectorName>{selectedModel.name}</ModelSelectorName>
         </Button>
       </ModelSelectorTrigger>
@@ -509,7 +526,7 @@ function PureModelSelectorCompact({
                       }}
                       value={model.id}
                     >
-                      <ModelSelectorLogo provider={logoProvider} />
+                      <ModelBadgeLogo provider={logoProvider} />
                       <ModelSelectorName>{model.name}</ModelSelectorName>
                       {model.id === selectedModel.id && (
                         <CheckIcon className="ml-auto size-4" />
