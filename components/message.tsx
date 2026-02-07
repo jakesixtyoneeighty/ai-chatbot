@@ -1,5 +1,6 @@
 "use client";
 import type { UseChatHelpers } from "@ai-sdk/react";
+import Image from "next/image";
 import { useState } from "react";
 import type { Vote } from "@/lib/db/schema";
 import type { ChatMessage } from "@/lib/types";
@@ -16,7 +17,6 @@ import {
   ToolInput,
   ToolOutput,
 } from "./elements/tool";
-import { SparklesIcon } from "./icons";
 import { MessageActions } from "./message-actions";
 import { MessageEditor } from "./message-editor";
 import { MessageReasoning } from "./message-reasoning";
@@ -66,7 +66,13 @@ const PurePreviewMessage = ({
       >
         {message.role === "assistant" && (
           <div className="-mt-1 flex size-8 shrink-0 items-center justify-center rounded-full bg-background ring-1 ring-border">
-            <SparklesIcon size={14} />
+            <Image
+              alt="Jad"
+              className="size-4 rounded-sm object-contain"
+              height={16}
+              src="/images/jad.svg"
+              width={16}
+            />
           </div>
         )}
 
@@ -373,7 +379,13 @@ export const ThinkingMessage = () => {
       <div className="flex items-start justify-start gap-3">
         <div className="-mt-1 flex size-8 shrink-0 items-center justify-center rounded-full bg-background ring-1 ring-border">
           <div className="animate-pulse">
-            <SparklesIcon size={14} />
+            <Image
+              alt="Jad"
+              className="size-4 rounded-sm object-contain"
+              height={16}
+              src="/images/jad.svg"
+              width={16}
+            />
           </div>
         </div>
 

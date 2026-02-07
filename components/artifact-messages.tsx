@@ -40,6 +40,20 @@ function PureArtifactMessages({
     status,
   });
 
+  const lastAssistantMessage = [...messages]
+    .reverse()
+    .find((message) => message.role === "assistant");
+
+  const hasAssistantContent = Boolean(
+    lastAssistantMessage?.parts?.some((part) => {
+      if (part.type === "text" || part.type === "reasoning") {
+        return Boolean(part.text?.trim());
+      }
+
+      return part.type.startsWith("tool-");
+    })
+  );
+
   return (
     <div
       className="flex h-full flex-col items-center gap-4 overflow-y-scroll px-4 pt-20"
@@ -67,12 +81,13 @@ function PureArtifactMessages({
       ))}
 
       <AnimatePresence mode="wait">
-        {status === "submitted" &&
+        {(status === "submitted" || status === "streaming") &&
           !messages.some((msg) =>
             msg.parts?.some(
               (part) => "state" in part && part.state === "approval-responded"
             )
-          ) && <ThinkingMessage key="thinking" />}
+          ) &&
+          !hasAssistantContent && <ThinkingMessage key="thinking" />}
       </AnimatePresence>
 
       <motion.div

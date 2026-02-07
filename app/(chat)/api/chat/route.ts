@@ -15,10 +15,7 @@ import { defaultEntitlements } from "@/lib/ai/entitlements";
 import { resolveChatModelId } from "@/lib/ai/models";
 import { type RequestHints, systemPrompt } from "@/lib/ai/prompts";
 import { getLanguageModel } from "@/lib/ai/providers";
-import { createDocument } from "@/lib/ai/tools/create-document";
-import { getWeather } from "@/lib/ai/tools/get-weather";
-import { requestSuggestions } from "@/lib/ai/tools/request-suggestions";
-import { updateDocument } from "@/lib/ai/tools/update-document";
+import { searchWebXai } from "@/lib/ai/tools/search-web-xai";
 import { getAuthUser } from "@/lib/auth/get-auth-user";
 import { isProductionEnvironment } from "@/lib/constants";
 import {
@@ -213,17 +210,9 @@ export async function POST(request: Request) {
           }),
           messages: modelMessages,
           stopWhen: stepCountIs(5),
-          experimental_activeTools: [
-            "getWeather",
-            "createDocument",
-            "updateDocument",
-            "requestSuggestions",
-          ],
+          experimental_activeTools: ["searchWebXai"],
           tools: {
-            getWeather,
-            createDocument: createDocument({ user, dataStream }),
-            updateDocument: updateDocument({ user, dataStream }),
-            requestSuggestions: requestSuggestions({ user, dataStream }),
+            searchWebXai,
           },
           experimental_telemetry: {
             isEnabled: isProductionEnvironment,
