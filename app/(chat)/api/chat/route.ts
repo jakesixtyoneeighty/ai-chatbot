@@ -7,17 +7,17 @@ import {
   stepCountIs,
   streamText,
 } from "ai";
-import fs from 'fs';
-import path from 'path';
+import fs from "fs";
+import path from "path";
 import { after } from "next/server";
 import { createResumableStreamContext } from "resumable-stream";
 import { defaultEntitlements } from "@/lib/ai/entitlements";
+import { resolveChatModelId } from "@/lib/ai/models";
 import { type RequestHints, systemPrompt } from "@/lib/ai/prompts";
 import { getLanguageModel } from "@/lib/ai/providers";
 import { createDocument } from "@/lib/ai/tools/create-document";
 import { getWeather } from "@/lib/ai/tools/get-weather";
 import { requestSuggestions } from "@/lib/ai/tools/request-suggestions";
-import { searchExa, readUrlExa } from "@/lib/ai/tools/search-exa";
 import { updateDocument } from "@/lib/ai/tools/update-document";
 import { getAuthUser } from "@/lib/auth/get-auth-user";
 import { isProductionEnvironment } from "@/lib/constants";
@@ -48,11 +48,11 @@ import { convertToUIMessages, generateUUID } from "@/lib/utils";
 import { generateTitleFromUserMessage } from "../../actions";
 import { type PostRequestBody, postRequestBodySchema } from "./schema";
 
-let nudistKbContent = '';
+let nudistKbContent = "";
 try {
-  const filePath = path.join(process.cwd(), 'nudistkb.md');
+  const filePath = path.join(process.cwd(), "nudistkb.md");
   if (fs.existsSync(filePath)) {
-    nudistKbContent = fs.readFileSync(filePath, 'utf-8');
+    nudistKbContent = fs.readFileSync(filePath, "utf-8");
   }
 } catch (e) {
   console.error("Failed to read knowledge base", e);
@@ -96,6 +96,7 @@ export async function POST(request: Request) {
   try {
     const { id, message, messages, selectedChatModel, selectedVisibilityType } =
       requestBody;
+    const resolvedChatModel = resolveChatModelId(selectedChatModel);
 
     const user = await getAuthUser();
 
@@ -195,10 +196,6 @@ export async function POST(request: Request) {
       });
     }
 
-    const isReasoningModel =
-      selectedChatModel.includes("reasoning") ||
-      selectedChatModel.includes("thinking");
-
     const modelMessages = await convertToModelMessages(uiMessages);
 
     // Fetch user profile for personalization
@@ -208,24 +205,28 @@ export async function POST(request: Request) {
       originalMessages: isToolApprovalFlow ? uiMessages : undefined,
       execute: async ({ writer: dataStream }) => {
         const result = streamText({
-          model: getLanguageModel(selectedChatModel),
-          system: systemPrompt({ selectedChatModel, requestHints, knowledgeBase: nudistKbContent, userProfile }),
+          model: getLanguageModel(resolvedChatModel),
+          system: systemPrompt({
+            requestHints,
+            knowledgeBase: nudistKbContent,
+            userProfile,
+          }),
           messages: modelMessages,
           stopWhen: stepCountIs(5),
-          experimental_activeTools: isReasoningModel
-            ? []
-            : [
-                "getWeather",
-                "createDocument",
-                "updateDocument",
-                "requestSuggestions",
-                "searchExa",
-                "readUrlExa",
-              ],
-          providerOptions: isReasoningModel
+          experimental_activeTools: [
+            "getWeather",
+            "createDocument",
+            "updateDocument",
+            "requestSuggestions",
+          ],
+          providerOptions: resolvedChatModel.startsWith("xai/")
             ? {
-                anthropic: {
-                  thinking: { type: "enabled", budgetTokens: 10_000 },
+                xai: {
+                  searchParameters: {
+                    mode: "auto",
+                    returnCitations: true,
+                    maxSearchResults: 5,
+                  },
                 },
               }
             : undefined,
@@ -234,8 +235,6 @@ export async function POST(request: Request) {
             createDocument: createDocument({ user, dataStream }),
             updateDocument: updateDocument({ user, dataStream }),
             requestSuggestions: requestSuggestions({ user, dataStream }),
-            searchExa,
-            readUrlExa,
           },
           experimental_telemetry: {
             isEnabled: isProductionEnvironment,
@@ -322,11 +321,9 @@ export async function POST(request: Request) {
 
     if (
       error instanceof Error &&
-      error.message?.includes(
-        "AI Gateway requires a valid credit card on file to service requests"
-      )
+      error.message.includes("xAI provider is unavailable")
     ) {
-      return new ChatSDKError("bad_request:activate_gateway").toResponse();
+      return new ChatSDKError("bad_request:api", error.message).toResponse();
     }
 
     console.error("Unhandled error in chat API:", error, { vercelId });

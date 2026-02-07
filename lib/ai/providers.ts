@@ -1,12 +1,36 @@
-import { gateway } from "@ai-sdk/gateway";
-import {
-  customProvider,
-  extractReasoningMiddleware,
-  wrapLanguageModel,
-} from "ai";
+import { customProvider, type LanguageModel } from "ai";
+import { normalizeChatModelId } from "./models";
 import { isTestEnvironment } from "../constants";
 
-const THINKING_SUFFIX_REGEX = /-thinking$/;
+const XAI_TITLE_MODEL = "grok-4-1-fast-non-reasoning";
+const XAI_ARTIFACT_MODEL = "grok-4-1-fast-non-reasoning";
+
+let xaiProvider: ((modelId: string) => LanguageModel) | null = null;
+
+function getXaiProvider() {
+  if (xaiProvider) {
+    return xaiProvider;
+  }
+
+  try {
+    const { xai } = require("@ai-sdk/xai") as {
+      xai: (modelId: string) => LanguageModel;
+    };
+    xaiProvider = xai;
+    return xaiProvider;
+  } catch {
+    throw new Error(
+      "xAI provider is unavailable. Install @ai-sdk/xai and set XAI_API_KEY."
+    );
+  }
+}
+
+function toXaiModelId(modelId: string) {
+  const normalizedModelId = normalizeChatModelId(modelId);
+  return normalizedModelId.startsWith("xai/")
+    ? normalizedModelId.slice("xai/".length)
+    : normalizedModelId;
+}
 
 export const myProvider = isTestEnvironment
   ? (() => {
@@ -29,34 +53,32 @@ export const myProvider = isTestEnvironment
 
 export function getLanguageModel(modelId: string) {
   if (isTestEnvironment && myProvider) {
-    return myProvider.languageModel(modelId);
+    const normalizedModelId = normalizeChatModelId(modelId);
+    const mockModelId = normalizedModelId.includes("reasoning")
+      ? "chat-model-reasoning"
+      : "chat-model";
+
+    return myProvider.languageModel(mockModelId);
   }
 
-  const isReasoningModel =
-    modelId.includes("reasoning") || modelId.endsWith("-thinking");
-
-  if (isReasoningModel) {
-    const gatewayModelId = modelId.replace(THINKING_SUFFIX_REGEX, "");
-
-    return wrapLanguageModel({
-      model: gateway.languageModel(gatewayModelId),
-      middleware: extractReasoningMiddleware({ tagName: "thinking" }),
-    });
-  }
-
-  return gateway.languageModel(modelId);
+  const xai = getXaiProvider();
+  return xai(toXaiModelId(modelId));
 }
 
 export function getTitleModel() {
   if (isTestEnvironment && myProvider) {
     return myProvider.languageModel("title-model");
   }
-  return gateway.languageModel("google/gemini-2.5-flash-lite");
+
+  const xai = getXaiProvider();
+  return xai(XAI_TITLE_MODEL);
 }
 
 export function getArtifactModel() {
   if (isTestEnvironment && myProvider) {
     return myProvider.languageModel("artifact-model");
   }
-  return gateway.languageModel("anthropic/claude-haiku-4.5");
+
+  const xai = getXaiProvider();
+  return xai(XAI_ARTIFACT_MODEL);
 }
