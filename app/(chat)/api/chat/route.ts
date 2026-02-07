@@ -219,17 +219,6 @@ export async function POST(request: Request) {
             "updateDocument",
             "requestSuggestions",
           ],
-          providerOptions: resolvedChatModel.startsWith("xai/")
-            ? {
-                xai: {
-                  searchParameters: {
-                    mode: "auto",
-                    returnCitations: true,
-                    maxSearchResults: 5,
-                  },
-                },
-              }
-            : undefined,
           tools: {
             getWeather,
             createDocument: createDocument({ user, dataStream }),
